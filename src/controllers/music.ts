@@ -1,0 +1,117 @@
+import { Message, MessageEmbed } from 'discord.js';
+import ytdl from 'ytdl-core';
+import { playVoiceConnection } from '../services/playVoiceConnection';
+
+export interface IServer {
+  id: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  dispatcher: any;
+  queue: { title: string; url: string }[];
+}
+export const server: IServer = {
+  id: process.env.SERVER,
+  dispatcher: null,
+  queue: []
+};
+
+export class Player {
+  public async play(message: Message, url: string) {
+    if (!url) return message.channel.send('Vous devez fournir un lien');
+
+    if (!message.member.voice.channel)
+      return message.channel.send(
+        'Vous devez être dans un channel vocal pour play le bot !'
+      );
+
+    let title: string;
+    try {
+      ytdl.getVideoID(url);
+      title = (await ytdl.getInfo(url)).videoDetails.title;
+    } catch (error) {
+      message.channel.send(error.message);
+      return;
+    }
+
+    message.client.user.setStatus('online');
+
+    server.queue.push({ url: url, title });
+
+    if (message.client.voice.connections.size === 0) {
+      message.member.voice.channel.join().then((connection) => {
+        playVoiceConnection(connection, message, server);
+      });
+    }
+  }
+
+  public skip(message: Message) {
+    if (message.client.voice.connections.size === 0) return;
+
+    if (server.dispatcher) server.dispatcher.end();
+    message.channel.send('Skip');
+  }
+
+  public stop(message: Message) {
+    if (message.client.voice.connections.size !== 0) {
+      for (let i = server.queue.length - 1; i >= 0; i--) {
+        server.queue.splice(i, 1);
+      }
+
+      server.dispatcher.end();
+      message.channel.send('Stop!');
+      message.client.user.setStatus('idle');
+      message.guild.voice.connection.disconnect();
+
+      return;
+    }
+  }
+
+  public list(message: Message) {
+    if (message.client.voice.connections.size === 0) return;
+
+    const VideoEmbed = new MessageEmbed()
+      .setTitle('Liste de vidéos en attente')
+      .setColor('#900C3F');
+
+    server.queue.forEach((video, index) => {
+      VideoEmbed.addField(`${++index} : ${video.title}`, video.url, false);
+    });
+
+    message.channel.send(VideoEmbed);
+  }
+
+  public help(message: Message) {
+    const HelpEmbed = new MessageEmbed()
+      .setTitle('Liste de commandes du bot de music')
+      .setColor('#FF5733')
+      .addFields(
+        {
+          name: '!help',
+          value: 'liste de commandes du bot de music',
+          inline: false
+        },
+        {
+          name: '!play `URL`',
+          value: "démarre la video ou mettra la vidéo sur liste d'attente",
+          inline: false
+        },
+        {
+          name: '!list',
+          value: 'liste de vidéos en attente ',
+          inline: false
+        },
+        {
+          name: '!skip',
+          value: 'retire la première video de la liste de mise en attente',
+          inline: false
+        },
+        {
+          name: '!stop',
+          value:
+            "retire le bot du channel et enlève toutes les vidéos de la liste d'attente",
+          inline: false
+        }
+      );
+
+    message.channel.send(HelpEmbed);
+  }
+}
