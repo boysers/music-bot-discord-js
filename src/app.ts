@@ -17,7 +17,7 @@ app.use('/', (_req, res) => {
 
 const bot = new Client();
 
-const { TOKEN, PORT } = process.env;
+const { TOKEN, CHANNEL_ID } = process.env;
 const PREFIX = '!';
 
 interface IServer {
@@ -33,7 +33,12 @@ const server: IServer = {
 };
 
 bot.once('ready', () => {
-  console.log('Ready!');
+  console.log(`Logged in as ${bot.user.tag}!`);
+
+  bot.user.setPresence({
+    activity: { name: PREFIX + 'play', type: 'LISTENING' },
+    status: 'idle'
+  });
 });
 
 function play(connection: VoiceConnection, message: Message) {
@@ -51,12 +56,15 @@ function play(connection: VoiceConnection, message: Message) {
     if (server.queue[0]) {
       play(connection, message);
     } else {
+      bot.user.setStatus('idle');
       connection.disconnect();
     }
   });
 }
 
 bot.on('message', async (message) => {
+  if (message.channel.id !== CHANNEL_ID) return;
+
   const args = message.content.substring(PREFIX.length).split(' ');
   let title: string;
 
@@ -81,6 +89,8 @@ bot.on('message', async (message) => {
         message.channel.send(error.message);
         return;
       }
+
+      bot.user.setStatus('online');
 
       server.queue.push({ url: args[1], title });
 
@@ -110,11 +120,11 @@ bot.on('message', async (message) => {
 
         server.dispatcher.end();
         message.channel.send('Stop!');
-        // console.log('stopped the queue');
-      }
-
-      if (message.client.voice.connections.size !== 0)
+        bot.user.setStatus('idle');
         message.guild.voice.connection.disconnect();
+
+        return;
+      }
 
       break;
 
@@ -178,4 +188,4 @@ bot.on('message', async (message) => {
 
 bot.login(TOKEN);
 
-app.listen(PORT, () => console.log('Server listening port', PORT));
+// app.listen(PORT, () => console.log('Server listening port', PORT));
