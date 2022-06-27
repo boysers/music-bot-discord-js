@@ -1,19 +1,28 @@
+/* eslint-disable no-case-declarations */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Client, Message, MessageEmbed, VoiceConnection } from 'discord.js';
-import ytdl = require('ytdl-core');
+import ytdl from 'ytdl-core';
+import express from 'express';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 require('dotenv').config();
 
+const app = express();
+
+app.use(express.json());
+
+app.use('/', (_req, res) => {
+  res.status(200).json({ status: 'ok!' });
+});
+
 const bot = new Client();
 
-const token = process.env.TOKEN;
+const { TOKEN, PORT } = process.env;
 const PREFIX = '!';
 
 interface IServer {
   id: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   dispatcher: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   queue: { title: string; url: string }[];
 }
 
@@ -29,7 +38,7 @@ bot.once('ready', () => {
 
 function play(connection: VoiceConnection, message: Message) {
   server.dispatcher = connection.play(
-    ytdl(server.queue[0].url, { filter: 'audioonly' })
+    ytdl(server.queue[0].url, { filter: 'audioonly', quality: 'lowestaudio' })
   );
 
   if (server.queue[0].url === 'https://www.youtube.com/watch?v=elJ-51qPkIU') {
@@ -101,7 +110,7 @@ bot.on('message', async (message) => {
 
         server.dispatcher.end();
         message.channel.send('Stop!');
-        console.log('stopped the queue');
+        // console.log('stopped the queue');
       }
 
       if (message.client.voice.connections.size !== 0)
@@ -114,14 +123,11 @@ bot.on('message', async (message) => {
         return;
       }
 
-      // eslint-disable-next-line no-case-declarations
       const VideoEmbed = new MessageEmbed()
         .setTitle('Liste de vidéos en attente')
         .setColor('#900C3F');
 
       server.queue.forEach((video, index) => {
-        console.log(video);
-
         const title = `${++index} : ${video.title}`;
 
         VideoEmbed.addField(title, video.url, false);
@@ -132,7 +138,6 @@ bot.on('message', async (message) => {
       break;
 
     case 'help':
-      // eslint-disable-next-line no-case-declarations
       const HelpEmbed = new MessageEmbed()
         .setTitle('Liste de commandes du bot de music')
         .setColor('#FF5733')
@@ -171,4 +176,6 @@ bot.on('message', async (message) => {
   }
 });
 
-bot.login(token);
+bot.login(TOKEN);
+
+app.listen(PORT, () => console.log('Server listening port', PORT));
