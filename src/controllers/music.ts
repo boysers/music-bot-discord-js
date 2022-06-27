@@ -69,6 +69,8 @@ export class Player {
   public list(message: Message): void {
     if (message.client.voice.connections.size === 0) return;
 
+    if (server.queues.length === 0) return;
+
     const VideoEmbed = new MessageEmbed()
       .setTitle('Liste de vidéos en attente')
       .setColor('#900C3F');
