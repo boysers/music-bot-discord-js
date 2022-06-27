@@ -1,5 +1,6 @@
 import { Client } from 'discord.js';
 import { EventEmitter } from 'stream';
+import { IHandlerFunc } from './interfaces/IHandlerFunc';
 import { channelId } from './server';
 
 export class Bot {
@@ -11,8 +12,7 @@ export class Bot {
     this.handler = new EventEmitter();
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public addCommand(commandName: string, handlerFunc: any) {
+  public addCommand(commandName: string, handlerFunc: IHandlerFunc) {
     this.handler.on(commandName, handlerFunc);
   }
 

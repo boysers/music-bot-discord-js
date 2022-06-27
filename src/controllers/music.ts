@@ -1,27 +1,27 @@
 import { Message, MessageEmbed } from 'discord.js';
 import ytdl from 'ytdl-core';
+import { IServer } from '../interfaces/IServer';
 import { playVoiceConnection } from '../services/playVoiceConnection';
 
-export interface IServer {
-  id: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  dispatcher: any;
-  queue: { title: string; url: string }[];
-}
 export const server: IServer = {
   id: process.env.SERVER,
   dispatcher: null,
-  queue: []
+  queues: []
 };
 
 export class Player {
-  public async play(message: Message, url: string) {
-    if (!url) return message.channel.send('Vous devez fournir un lien');
+  public async play(message: Message, url: string): Promise<void> {
+    if (!url) {
+      message.channel.send('Vous devez fournir un lien');
+      return;
+    }
 
-    if (!message.member.voice.channel)
-      return message.channel.send(
+    if (!message.member.voice.channel) {
+      message.channel.send(
         'Vous devez être dans un channel vocal pour play le bot !'
       );
+      return;
+    }
 
     let title: string;
     try {
@@ -34,16 +34,17 @@ export class Player {
 
     message.client.user.setStatus('online');
 
-    server.queue.push({ url: url, title });
+    server.queues.push({ url: url, title });
 
     if (message.client.voice.connections.size === 0) {
       message.member.voice.channel.join().then((connection) => {
-        playVoiceConnection(connection, message, server);
+        playVoiceConnection(connection, message, server, 'lowestaudio');
       });
+      return;
     }
   }
 
-  public skip(message: Message) {
+  public skip(message: Message): void {
     if (message.client.voice.connections.size === 0) return;
 
     if (server.dispatcher) server.dispatcher.end();
@@ -52,8 +53,8 @@ export class Player {
 
   public stop(message: Message) {
     if (message.client.voice.connections.size !== 0) {
-      for (let i = server.queue.length - 1; i >= 0; i--) {
-        server.queue.splice(i, 1);
+      for (let i = server.queues.length - 1; i >= 0; i--) {
+        server.queues.splice(i, 1);
       }
 
       server.dispatcher.end();
@@ -65,21 +66,21 @@ export class Player {
     }
   }
 
-  public list(message: Message) {
+  public list(message: Message): void {
     if (message.client.voice.connections.size === 0) return;
 
     const VideoEmbed = new MessageEmbed()
       .setTitle('Liste de vidéos en attente')
       .setColor('#900C3F');
 
-    server.queue.forEach((video, index) => {
+    server.queues.forEach((video, index) => {
       VideoEmbed.addField(`${++index} : ${video.title}`, video.url, false);
     });
 
     message.channel.send(VideoEmbed);
   }
 
-  public help(message: Message) {
+  public help(message: Message): void {
     const HelpEmbed = new MessageEmbed()
       .setTitle('Liste de commandes du bot de music')
       .setColor('#FF5733')

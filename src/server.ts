@@ -9,14 +9,16 @@ const { TOKEN, CHANNEL_ID } = process.env;
 export const channelId = CHANNEL_ID;
 
 const bot = new Bot();
-const playerMusic = new Player();
+const musicPlayer = new Player();
 
+// === Commande de testes ===
 bot.addCommand('ping', sendPing);
 
-bot.addCommand('play', playerMusic.play);
-bot.addCommand('skip', playerMusic.skip);
-bot.addCommand('stop', playerMusic.stop);
-bot.addCommand('list', playerMusic.list);
-bot.addCommand('help', playerMusic.help);
+// === Commande du player ===
+bot.addCommand('play', musicPlayer.play);
+bot.addCommand('skip', musicPlayer.skip);
+bot.addCommand('stop', musicPlayer.stop);
+bot.addCommand('list', musicPlayer.list);
+bot.addCommand('help', musicPlayer.help);
 
 bot.start(TOKEN);

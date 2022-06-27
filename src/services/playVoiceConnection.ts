@@ -1,25 +1,22 @@
 import { Message, VoiceConnection } from 'discord.js';
 import ytdl from 'ytdl-core';
-import { IServer } from '../controllers/music';
+import { IServer } from '../interfaces/IServer';
 
 export function playVoiceConnection(
   connection: VoiceConnection,
   message: Message,
-  server: IServer
-) {
+  server: IServer,
+  quality: 'lowestaudio' | 'highestaudio'
+): void {
   server.dispatcher = connection.play(
-    ytdl(server.queue[0].url, { filter: 'audioonly', quality: 'highestaudio' })
+    ytdl(server.queues[0].url, { filter: 'audioonly', quality })
   );
 
-  if (server.queue[0].url === 'https://www.youtube.com/watch?v=elJ-51qPkIU') {
-    message.channel.send(`@here t'inquiète pas ÇA VA RENTRER`.toLowerCase());
-  }
-
-  server.queue.shift();
+  server.queues.shift();
 
   server.dispatcher.on('finish', () => {
-    if (server.queue[0]) {
-      playVoiceConnection(connection, message, server);
+    if (server.queues[0]) {
+      playVoiceConnection(connection, message, server, quality);
     } else {
       message.client.user.setStatus('idle');
       connection.disconnect();
