@@ -1,19 +1,12 @@
 import { Client } from 'discord.js';
 import { EventEmitter } from 'stream';
-import { IHandlerFunc } from './interfaces/IHandlerFunc';
 import { channelId } from './server';
 
 export class Bot {
   private bot: Client;
-  private handler: EventEmitter;
 
-  constructor(private PREFIX = '!') {
+  constructor(private commands: EventEmitter, private PREFIX = '!') {
     this.bot = new Client();
-    this.handler = new EventEmitter();
-  }
-
-  public addCommand(commandName: string, handlerFunc: IHandlerFunc) {
-    this.handler.on(commandName, handlerFunc);
   }
 
   private onceReady() {
@@ -33,7 +26,7 @@ export class Bot {
 
       const args = message.content.substring(this.PREFIX.length).split(' ');
 
-      this.handler.emit(args[0], message, args[1]);
+      this.commands.emit(args[0], message, args[1]);
     });
   }
 
