@@ -21,6 +21,11 @@ export class Player {
         'Vous devez être dans un channel vocal pour play le bot !'
       );
       return;
+    } else if (!message.member.voice.channel.joinable) {
+      message.channel.send(
+        `<@${message.client.user.id}> n'est pas autorisé à rejoindre ce channel vocal.`
+      );
+      return;
     }
 
     let title: string;
@@ -47,12 +52,25 @@ export class Player {
   public skip(message: Message): void {
     if (message.client.voice.connections.size === 0) return;
 
+    if (!message.member.voice.channel) {
+      message.channel.send('Vous devez être dans un channel vocal pour skip !');
+      return;
+    }
+
     if (server.dispatcher) server.dispatcher.end();
     message.channel.send('Skip');
   }
 
   public stop(message: Message) {
     if (message.client.voice.connections.size !== 0) {
+      if (!message.member.voice.channel) {
+        message.channel.send(
+          'Vous devez être dans le channel vocal pour stopper le bot !'
+        );
+
+        return;
+      }
+
       for (let i = server.queues.length - 1; i >= 0; i--) {
         server.queues.splice(i, 1);
       }
