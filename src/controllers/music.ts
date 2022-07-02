@@ -1,138 +1,138 @@
 import { Message, MessageEmbed } from 'discord.js';
 import ytdl from 'ytdl-core';
-import { IServer } from '../interfaces/IServer';
+import { GuildServerList } from '../interfaces/GuildServerList.interface';
 import { playVoiceConnection } from '../services/playVoiceConnection';
 
-export const server: IServer = {
-  id: process.env.SERVER,
-  dispatcher: null,
-  queues: []
-};
+const servers: GuildServerList = {};
 
 export class Player {
   public async play(message: Message, url: string): Promise<void> {
-    if (!url) {
-      message.channel.send('Vous devez fournir un lien');
-      return;
-    }
-
-    if (!message.member.voice.channel) {
-      message.channel.send(
-        'Vous devez être dans un channel vocal pour play le bot !'
-      );
-      return;
-    } else if (!message.member.voice.channel.joinable) {
-      message.channel.send(
-        `<@${message.client.user.id}> n'est pas autorisé à rejoindre ce channel vocal.`
-      );
-      return;
-    }
-
-    let title: string;
     try {
+      if (!url) return;
+
+      if (!message.member.voice.channel) {
+        return;
+      } else if (!message.member.voice.channel.joinable) return;
+
       ytdl.getVideoID(url);
-      title = (await ytdl.getInfo(url)).videoDetails.title;
+      const title = (await ytdl.getInfo(url)).videoDetails.title;
+
+      if (!servers[message.guild.id]) {
+        servers[message.guild.id] = {
+          queue: []
+        };
+      }
+
+      message.client.user.setStatus('online');
+
+      const server = servers[message.guild.id];
+
+      server.queue.push({ url: url, title });
+
+      if (!message.guild.me.voice.channel) {
+        message.member.voice.channel.join().then((connection) => {
+          playVoiceConnection(connection, message, server, 'lowestaudio');
+        });
+        return;
+      }
     } catch (error) {
-      message.channel.send(error.message);
-      return;
-    }
-
-    message.client.user.setStatus('online');
-
-    server.queues.push({ url: url, title });
-
-    if (message.client.voice.connections.size === 0) {
-      message.member.voice.channel.join().then((connection) => {
-        playVoiceConnection(connection, message, server, 'lowestaudio');
-      });
-      return;
+      console.log('Error !play :', error);
     }
   }
 
   public skip(message: Message): void {
-    if (message.client.voice.connections.size === 0) return;
+    try {
+      if (!message.guild.me.voice.channel) return;
 
-    if (!message.member.voice.channel) {
-      message.channel.send('Vous devez être dans un channel vocal pour skip !');
-      return;
+      if (!message.member.voice.channel) return;
+
+      const server = servers[message.guild.id];
+
+      if (server.dispatcher) server.dispatcher.end();
+    } catch (error) {
+      console.log('Error !skip :', error.message);
     }
-
-    if (server.dispatcher) server.dispatcher.end();
-    message.channel.send('Skip');
   }
 
-  public stop(message: Message) {
-    if (message.client.voice.connections.size !== 0) {
-      if (!message.member.voice.channel) {
-        message.channel.send(
-          'Vous devez être dans le channel vocal pour stopper le bot !'
+  public async stop(message: Message): Promise<void> {
+    try {
+      if (!message.guild.me.voice.channel) return;
+
+      if (!message.member.voice.channel) return;
+
+      const server = servers[message.guild.id];
+
+      if (server.dispatcher) server.dispatcher.end();
+      (await message.member.voice.channel.join()).disconnect();
+
+      delete servers[message.guild.id];
+      await message.client.user.setStatus('idle');
+    } catch (error) {
+      console.log('Error !stop :', error.message);
+    }
+  }
+
+  public async list(message: Message): Promise<void> {
+    try {
+      if (!message.guild.me.voice.channel) return;
+
+      if (!message.member.voice.channel) return;
+
+      const server = servers[message.guild.id];
+
+      if (server.queue.length === 0) return;
+
+      const VideoEmbed = new MessageEmbed()
+        .setTitle('Liste de vidéos en attente')
+        .setColor('#900C3F');
+
+      server.queue.forEach((video, index) => {
+        VideoEmbed.addField(`${++index} : ${video.title}`, video.url, false);
+      });
+
+      await message.channel.send(VideoEmbed);
+    } catch (error) {
+      console.log('Error !list :', error.message);
+    }
+  }
+
+  public async help(message: Message): Promise<void> {
+    try {
+      const HelpEmbed = new MessageEmbed()
+        .setTitle('Liste de commandes du bot de music')
+        .setColor('#FF5733')
+        .addFields(
+          {
+            name: '!help',
+            value: 'liste de commandes du bot de music',
+            inline: false
+          },
+          {
+            name: '!play `URL`',
+            value: "démarre la video ou mettra la vidéo sur liste d'attente",
+            inline: false
+          },
+          {
+            name: '!list',
+            value: 'liste de vidéos en attente ',
+            inline: false
+          },
+          {
+            name: '!skip',
+            value: 'retire la première video de la liste de mise en attente',
+            inline: false
+          },
+          {
+            name: '!stop',
+            value:
+              "retire le bot du channel et enlève toutes les vidéos de la liste d'attente",
+            inline: false
+          }
         );
 
-        return;
-      }
-
-      for (let i = server.queues.length - 1; i >= 0; i--) {
-        server.queues.splice(i, 1);
-      }
-
-      server.dispatcher.end();
-      message.channel.send('Stop!');
-      message.client.user.setStatus('idle');
-      message.guild.voice.connection.disconnect();
-
-      return;
+      await message.channel.send(HelpEmbed);
+    } catch (error) {
+      console.log('Error !help :', error.message);
     }
-  }
-
-  public list(message: Message): void {
-    if (message.client.voice.connections.size === 0) return;
-
-    if (server.queues.length === 0) return;
-
-    const VideoEmbed = new MessageEmbed()
-      .setTitle('Liste de vidéos en attente')
-      .setColor('#900C3F');
-
-    server.queues.forEach((video, index) => {
-      VideoEmbed.addField(`${++index} : ${video.title}`, video.url, false);
-    });
-
-    message.channel.send(VideoEmbed);
-  }
-
-  public help(message: Message): void {
-    const HelpEmbed = new MessageEmbed()
-      .setTitle('Liste de commandes du bot de music')
-      .setColor('#FF5733')
-      .addFields(
-        {
-          name: '!help',
-          value: 'liste de commandes du bot de music',
-          inline: false
-        },
-        {
-          name: '!play `URL`',
-          value: "démarre la video ou mettra la vidéo sur liste d'attente",
-          inline: false
-        },
-        {
-          name: '!list',
-          value: 'liste de vidéos en attente ',
-          inline: false
-        },
-        {
-          name: '!skip',
-          value: 'retire la première video de la liste de mise en attente',
-          inline: false
-        },
-        {
-          name: '!stop',
-          value:
-            "retire le bot du channel et enlève toutes les vidéos de la liste d'attente",
-          inline: false
-        }
-      );
-
-    message.channel.send(HelpEmbed);
   }
 }

@@ -1,21 +1,21 @@
 import { Message, VoiceConnection } from 'discord.js';
 import ytdl from 'ytdl-core';
-import { IServer } from '../interfaces/IServer';
+import { GuildServer } from '../interfaces/GuildServer.interface';
 
 export function playVoiceConnection(
   connection: VoiceConnection,
   message: Message,
-  server: IServer,
+  server: GuildServer,
   quality: 'lowestaudio' | 'highestaudio'
 ): void {
   server.dispatcher = connection.play(
-    ytdl(server.queues[0].url, { filter: 'audioonly', quality })
+    ytdl(server.queue[0].url, { filter: 'audioonly', quality })
   );
 
-  server.queues.shift();
+  server.queue.shift();
 
   server.dispatcher.on('finish', () => {
-    if (server.queues[0]) {
+    if (server.queue[0]) {
       playVoiceConnection(connection, message, server, quality);
     } else {
       message.client.user.setStatus('idle');
