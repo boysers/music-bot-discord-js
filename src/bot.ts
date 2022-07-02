@@ -1,6 +1,5 @@
 import { Client } from 'discord.js';
 import { EventEmitter } from 'stream';
-import { channelId } from './server';
 
 export class Bot {
   private bot: Client;
@@ -22,7 +21,7 @@ export class Bot {
 
   private onMessage() {
     this.bot.on('message', (message) => {
-      if (message.channel.id !== channelId) return;
+      if (message.author.bot) return;
 
       const args = message.content.substring(this.PREFIX.length).split(' ');
 

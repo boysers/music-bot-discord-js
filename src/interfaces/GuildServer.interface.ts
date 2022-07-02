@@ -1,9 +1,8 @@
 import { StreamDispatcher } from 'discord.js';
 
-export interface IServer {
-  id: string;
-  dispatcher: StreamDispatcher;
-  queues: Queue[];
+export interface GuildServer {
+  queue: Queue[];
+  dispatcher?: StreamDispatcher;
 }
 
 interface Queue {
