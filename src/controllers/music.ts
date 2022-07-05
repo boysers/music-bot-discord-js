@@ -36,7 +36,7 @@ export class Player {
         return;
       }
     } catch (error) {
-      console.log('Error !play :', error);
+      console.log('Error !play :', error.message);
     }
   }
 
