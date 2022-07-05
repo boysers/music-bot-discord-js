@@ -17,7 +17,7 @@ export class Player {
       ytdl.getVideoID(url);
       const title = (await ytdl.getInfo(url)).videoDetails.title;
 
-      message.channel.send(`Play ${title}`);
+      await message.channel.send(`Play ${title}`);
 
       if (!servers[message.guild.id]) {
         servers[message.guild.id] = {
@@ -40,13 +40,13 @@ export class Player {
     }
   }
 
-  public skip(message: Message): void {
+  public async skip(message: Message): Promise<void> {
     try {
       if (!message.guild.me.voice.channel) return;
 
       if (!message.member.voice.channel) return;
 
-      message.channel.send(`Skip!`);
+      await message.channel.send(`Skip!`);
 
       const server = servers[message.guild.id];
 
@@ -62,7 +62,7 @@ export class Player {
 
       if (!message.member.voice.channel) return;
 
-      message.channel.send('Stop!');
+      await message.channel.send('Stop!');
 
       const server = servers[message.guild.id];
 
