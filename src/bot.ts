@@ -14,7 +14,7 @@ export class Bot {
 
       this.bot.user.setPresence({
         activity: { name: this.PREFIX + 'play', type: 'LISTENING' },
-        status: 'idle'
+        status: 'online'
       });
     });
   }
