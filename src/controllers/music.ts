@@ -17,13 +17,13 @@ export class Player {
       ytdl.getVideoID(url);
       const title = (await ytdl.getInfo(url)).videoDetails.title;
 
+      message.channel.send(`Play ${title}`);
+
       if (!servers[message.guild.id]) {
         servers[message.guild.id] = {
           queue: []
         };
       }
-
-      message.client.user.setStatus('online');
 
       const server = servers[message.guild.id];
 
@@ -46,6 +46,8 @@ export class Player {
 
       if (!message.member.voice.channel) return;
 
+      message.channel.send(`Skip!`);
+
       const server = servers[message.guild.id];
 
       if (server.dispatcher) server.dispatcher.end();
@@ -60,13 +62,14 @@ export class Player {
 
       if (!message.member.voice.channel) return;
 
+      message.channel.send('Stop!');
+
       const server = servers[message.guild.id];
 
       if (server.dispatcher) server.dispatcher.end();
       (await message.member.voice.channel.join()).disconnect();
 
       delete servers[message.guild.id];
-      await message.client.user.setStatus('idle');
     } catch (error) {
       console.log('Error !stop :', error.message);
     }
@@ -99,12 +102,12 @@ export class Player {
   public async help(message: Message): Promise<void> {
     try {
       const HelpEmbed = new MessageEmbed()
-        .setTitle('Liste de commandes du bot de music')
+        .setTitle('Liste de commandes du bot de musique')
         .setColor('#FF5733')
         .addFields(
           {
             name: '!help',
-            value: 'liste de commandes du bot de music',
+            value: 'liste de commandes du bot de musique',
             inline: false
           },
           {

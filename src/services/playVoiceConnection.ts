@@ -18,7 +18,6 @@ export function playVoiceConnection(
     if (server.queue[0]) {
       playVoiceConnection(connection, message, server, quality);
     } else {
-      message.client.user.setStatus('idle');
       connection.disconnect();
     }
   });
